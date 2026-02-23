@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TechExit Systemoversigt</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-active-tab="systems">
+    <header class="hero">
+      <h1>TechExit</h1>
+      <p>Start med oversigten. Vælg et system for at redigere og styre afhængigheder.</p>
+      <nav id="top-tabs" class="top-tabs hidden" aria-label="Primær navigation">
+        <button type="button" class="top-tab active" data-tab="systems" aria-selected="true">Systemer</button>
+        <button type="button" class="top-tab" data-tab="dashboard" aria-selected="false">Dashboard</button>
+        <button type="button" class="top-tab" data-tab="dependencies" aria-selected="false">Afhængigheder</button>
+        <button type="button" class="top-tab top-tab-admin" data-tab="users" aria-selected="false">Brugere</button>
+        <button type="button" class="top-tab" data-tab="profile" aria-selected="false">Profil</button>
+      </nav>
+      <div id="session-meta" class="session-meta hidden">
+        <span>Logget ind som <strong id="session-user"></strong> (<span id="session-role"></span>)</span>
+        <button type="button" id="logout-btn" class="secondary">Log ud</button>
+      </div>
+    </header>
+
+    <section class="card auth-card" id="auth-card">
+      <h2>Log ind</h2>
+      <p class="muted">Du skal logge ind for at se og ændre data.</p>
+      <form id="login-form" class="form-grid auth-form">
+        <label>Brugernavn <input id="login-username" autocomplete="username" required /></label>
+        <label>Adgangskode <input id="login-password" type="password" autocomplete="current-password" required /></label>
+        <div class="full row">
+          <button type="submit">Log ind</button>
+        </div>
+      </form>
+    </section>
+
+    <main id="app-layout" class="layout hidden">
+      <section class="card" id="overview-card">
+        <h2>Systemoversigt</h2>
+        <p class="muted">Klik på en række for at åbne detaljer.</p>
+
+        <form id="quick-create-form" class="row wrap">
+          <input id="quick-system-name" placeholder="Nyt systemnavn" required />
+          <button type="submit">Opret system</button>
+        </form>
+
+        <div class="table-wrap">
+          <table id="systems-table">
+            <thead>
+              <tr>
+                <th data-sort="name">Navn</th>
+                <th data-sort="category">Kategori</th>
+                <th data-sort="vendor">Leverandør</th>
+                <th data-sort="business_owner">Forretningsansvarlig</th>
+                <th data-sort="criticality">Kritikalitet</th>
+                <th data-sort="replacement_priority">Udskiftningsprioritet</th>
+                <th data-sort="origin_country">Oprindelsesland</th>
+                <th data-sort="status">Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card wide" id="dashboard-card">
+        <h2>Dashboard</h2>
+        <p class="muted">Visuelt overblik over systemporteføljen.</p>
+
+        <div class="dashboard-kpis">
+          <article class="kpi-card">
+            <span class="kpi-label">Systemer</span>
+            <strong class="kpi-value" id="kpi-total-systems">0</strong>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Afhængigheder</span>
+            <strong class="kpi-value" id="kpi-total-dependencies">0</strong>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Kritiske systemer</span>
+            <strong class="kpi-value" id="kpi-critical-systems">0</strong>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Uden afhængigheder</span>
+            <strong class="kpi-value" id="kpi-isolated-systems">0</strong>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="dash-panel">
+            <h3>Oprindelseslande (top 10)</h3>
+            <div id="chart-country-origin" class="chart-list"></div>
+          </article>
+
+          <article class="dash-panel">
+            <h3>Kritikalitet</h3>
+            <div class="donut-layout">
+              <div id="chart-criticality-ring" class="donut-ring" aria-hidden="true"></div>
+              <ul id="chart-criticality-legend" class="chart-legend"></ul>
+            </div>
+          </article>
+
+          <article class="dash-panel">
+            <h3>Statusfordeling</h3>
+            <div id="chart-status" class="chart-list"></div>
+          </article>
+
+          <article class="dash-panel">
+            <h3>Systemer med flest afhængigheder</h3>
+            <div id="chart-dependency-load" class="chart-list"></div>
+          </article>
+        </div>
+
+      </section>
+
+      <section class="card wide" id="users-card">
+        <h2>Brugeradministration</h2>
+        <p id="users-access-denied" class="muted hidden">Kun administratorer har adgang til brugeradministration.</p>
+
+        <section id="user-admin-panel" class="dash-panel admin-panel">
+          <h3>Brugerhåndtering</h3>
+          <p class="muted">Kun administratorer kan oprette nye brugere.</p>
+
+          <form id="create-user-form" class="form-grid compact">
+            <label>Brugernavn <input id="new-user-username" required minlength="3" /></label>
+            <label>Adgangskode <input id="new-user-password" type="password" required minlength="8" /></label>
+            <label>Rolle
+              <select id="new-user-role" required>
+                <option value="editor">Redaktør</option>
+                <option value="admin">Administrator</option>
+              </select>
+            </label>
+            <div class="full row">
+              <button type="submit">Opret bruger</button>
+            </div>
+          </form>
+
+          <div class="table-wrap">
+            <table id="users-table">
+              <thead>
+                <tr>
+                  <th>Brugernavn</th>
+                  <th>Rolle</th>
+                  <th>Status</th>
+                  <th>Sidste login</th>
+                  <th>Oprettet</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="card wide" id="profile-card">
+        <h2>Min Profil</h2>
+        <p class="muted">Bruger: <strong id="profile-username">-</strong> • Rolle: <strong id="profile-role">-</strong></p>
+
+        <section id="password-panel" class="dash-panel password-panel">
+          <h3>Skift adgangskode</h3>
+          <p class="muted">Din nye adgangskode skal være mindst 8 tegn.</p>
+          <form id="change-password-form" class="form-grid compact">
+            <label>Nuværende adgangskode <input id="current-password" type="password" autocomplete="current-password" required /></label>
+            <label>Ny adgangskode <input id="new-password" type="password" autocomplete="new-password" required minlength="8" /></label>
+            <label>Bekræft ny adgangskode <input id="confirm-password" type="password" autocomplete="new-password" required minlength="8" /></label>
+            <div class="full row">
+              <button type="submit">Opdater adgangskode</button>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="card" id="system-detail-card">
+        <div class="detail-header">
+          <h2>Systemdetaljer</h2>
+          <div class="row wrap">
+            <button type="button" id="show-dependencies" class="secondary">Vis afhængighedskort</button>
+            <button type="button" id="show-overview" class="secondary">Vælg andet system</button>
+          </div>
+        </div>
+        <p>Valgt system: <strong id="selected-system-name">Ingen valgt</strong></p>
+
+        <section class="subpanel panel-system">
+          <h3>Systemoplysninger</h3>
+          <form id="system-form" class="form-grid">
+            <input type="hidden" id="system-id" />
+            <label>Navn <input id="name" required /></label>
+            <label>Kategori <input id="category" required /></label>
+            <label>Leverandør <input id="vendor" required /></label>
+            <label>Oprindelsesland
+              <div class="combo">
+                <input id="origin_country" placeholder="Søg land..." autocomplete="off" required />
+                <div id="origin-country-options" class="combo-options hidden"></div>
+              </div>
+            </label>
+            <label>Hostingmodel <input id="hosting_model" required placeholder="SaaS/on-prem/hybrid" /></label>
+            <label>Forretningsansvarlig <input id="business_owner" /></label>
+            <label>Teknisk ansvarlig <input id="technical_owner" /></label>
+            <label>Kritikalitet
+              <select id="criticality" required>
+                <option value="critical">Kritisk</option>
+                <option value="high">Høj</option>
+                <option value="medium">Mellem</option>
+                <option value="low">Lav</option>
+              </select>
+            </label>
+            <label>Dataklassifikation
+              <select id="data_classification" required>
+                <option value="restricted">Begrænset</option>
+                <option value="confidential">Fortrolig</option>
+                <option value="internal">Intern</option>
+                <option value="public">Offentlig</option>
+              </select>
+            </label>
+            <label>Udskiftningsprioritet
+              <select id="replacement_priority" required>
+                <option value="high">Høj</option>
+                <option value="medium">Mellem</option>
+                <option value="low">Lav</option>
+              </select>
+            </label>
+            <label>Status
+              <select id="status">
+                <option value="active">Aktiv</option>
+                <option value="phase_out">Udfases</option>
+                <option value="planned">Planlagt</option>
+                <option value="retired">Nedlagt</option>
+              </select>
+            </label>
+            <label>Årlig pris (EUR) <input id="annual_cost_eur" type="number" step="0.01" /></label>
+            <label>Kontrakt slutdato <input id="contract_end_date" type="date" /></label>
+            <label class="full">Noter <textarea id="notes" rows="2"></textarea></label>
+            <div class="full row">
+              <button type="submit">Gem ændringer</button>
+              <button type="button" id="delete-system" class="warn">Slet system</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="subpanel panel-alternatives">
+          <h3>Alternativer</h3>
+          <form id="alternative-form" class="form-grid compact">
+            <input type="hidden" id="alt-id" />
+          <label>Navn <input id="alt-name" required /></label>
+          <label>Leverandør <input id="alt-vendor" required /></label>
+          <label>Leverandørland
+            <div class="combo">
+              <input id="alt-country" placeholder="Søg land..." autocomplete="off" required />
+              <div id="alt-country-options" class="combo-options hidden"></div>
+            </div>
+          </label>
+          <label>EU-baseret
+            <select id="alt-eu-based" required>
+              <option value="true">Ja</option>
+              <option value="false">Nej</option>
+            </select>
+          </label>
+          <label>Matchscore (1-10) <input id="alt-fit" type="number" min="1" max="10" /></label>
+          <label>Migrationskompleksitet
+            <select id="alt-migration">
+              <option value="">Ikke angivet</option>
+              <option value="low">Lav</option>
+              <option value="medium">Mellem</option>
+              <option value="high">Høj</option>
+            </select>
+          </label>
+          <label class="full">Link til alternativ <input id="alt-url" type="url" placeholder="https://..." /></label>
+          <label class="full">Noter <textarea id="alt-notes" rows="2"></textarea></label>
+            <div class="full row">
+              <button type="submit" id="alt-submit">Tilføj alternativ</button>
+              <button type="button" id="alt-cancel" class="secondary hidden">Annuller redigering</button>
+            </div>
+          </form>
+          <ul id="alternatives-list" class="list"></ul>
+        </section>
+
+        <section class="subpanel panel-dependencies">
+          <h3>Afhængigheder</h3>
+          <form id="dependency-form" class="form-grid compact">
+          <input type="hidden" id="dep-id" />
+          <label>Til eksisterende system
+            <select id="dep-target">
+              <option value="">Vælg system</option>
+            </select>
+          </label>
+          <label>Eller opret nyt systemnavn
+            <input id="dep-new-target-name" placeholder="Nyt system" />
+          </label>
+          <label>Type
+            <select id="dep-type" required>
+              <option value="api">API</option>
+              <option value="file_transfer">Filoverførsel</option>
+              <option value="sso">Fælles login (SSO)</option>
+              <option value="database">Database</option>
+              <option value="manual_process">Manuel proces</option>
+              <option value="other">Andet</option>
+            </select>
+          </label>
+          <label>Retning
+            <select id="dep-direction" required>
+              <option value="source_to_target">Fra valgt system til målsystem</option>
+              <option value="bidirectional">Tovejs</option>
+            </select>
+          </label>
+          <label>Kritikalitet
+            <select id="dep-criticality" required>
+              <option value="critical">Kritisk</option>
+              <option value="high">Høj</option>
+              <option value="medium">Mellem</option>
+              <option value="low">Lav</option>
+            </select>
+          </label>
+          <label class="full">Data delt <input id="dep-data" /></label>
+            <div class="full row">
+              <button type="submit" id="dep-submit">Tilføj afhængighed</button>
+              <button type="button" id="dep-cancel" class="secondary hidden">Annuller redigering</button>
+            </div>
+          </form>
+
+          <ul id="dependencies-list" class="list"></ul>
+        </section>
+      </section>
+
+      <section class="card wide" id="graph-card">
+        <h2>Sammenhæng mellem systemer</h2>
+        <p class="muted">Linjer viser afhængigheder. Klik på en node for at vælge system.</p>
+        <div class="graph-toolbar">
+          <button type="button" id="graph-mode-focus" class="graph-toggle active">Fokus på valgt system</button>
+          <button type="button" id="graph-mode-all" class="graph-toggle">Vis alle systemer</button>
+        </div>
+        <div class="graph-wrap">
+          <svg id="system-graph" class="system-graph" viewBox="0 0 1000 520" role="img" aria-label="Systemgraf"></svg>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

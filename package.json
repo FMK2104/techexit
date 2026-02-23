@@ -1,0 +1,22 @@
+{
+  "name": "techexit-system-mapper",
+  "version": "1.0.0",
+  "description": "Node.js app til kortlaegning af systemer, EU-alternativer og afhaengigheder",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "system-inventory",
+    "sqlite",
+    "eu-alternatives",
+    "dependency-graph"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}

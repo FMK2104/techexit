@@ -382,7 +382,7 @@ async function loadUsers() {
     return;
   }
 
-  state.users = await api('/users');
+  state.users = await api('users');
   renderUsersTable();
 }
 
@@ -400,7 +400,8 @@ async function api(path, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(path, {
+  const requestPath = String(path || '').replace(/^\/+/, '');
+  const response = await fetch(requestPath, {
     ...fetchOptions,
     headers
   });
@@ -1045,7 +1046,7 @@ async function loadSystems() {
     return;
   }
 
-  const [systems, graph] = await Promise.all([api('/systems'), api('/graph')]);
+  const [systems, graph] = await Promise.all([api('systems'), api('graph')]);
   state.systems = systems;
   state.graphEdges = graph?.edges || [];
   renderSystemsTable();
@@ -1059,7 +1060,7 @@ function scrollToSystemDetails() {
 }
 
 async function refreshSession() {
-  const session = await api('/auth/me', { skipAuthHandling: true });
+  const session = await api('auth/me', { skipAuthHandling: true });
   if (!session?.authenticated || !session.user) {
     setAuthenticatedUi(null);
     return false;
@@ -1076,7 +1077,7 @@ el.loginForm.addEventListener('submit', async (event) => {
     const password = el.loginPassword.value;
     if (!username || !password) return;
 
-    const result = await api('/auth/login', {
+    const result = await api('auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
       skipAuthHandling: true
@@ -1096,7 +1097,7 @@ el.loginForm.addEventListener('submit', async (event) => {
 
 el.logoutBtn.addEventListener('click', async () => {
   try {
-    await api('/auth/logout', { method: 'POST', skipAuthHandling: true });
+    await api('auth/logout', { method: 'POST', skipAuthHandling: true });
     setAuthenticatedUi(null);
     notify('Logget ud');
   } catch (error) {
@@ -1118,7 +1119,7 @@ el.createUserForm.addEventListener('submit', async (event) => {
       role: el.newUserRole.value
     };
 
-    await api('/users', {
+    await api('users', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
@@ -1153,7 +1154,7 @@ el.changePasswordForm.addEventListener('submit', async (event) => {
       return;
     }
 
-    await api('/auth/change-password', {
+    await api('auth/change-password', {
       method: 'POST',
       body: JSON.stringify({
         current_password: currentPassword,
@@ -1174,7 +1175,7 @@ el.quickCreateForm.addEventListener('submit', async (event) => {
   const name = el.quickSystemName.value.trim();
   if (!name) return;
 
-  const created = await api('/systems/quick', {
+  const created = await api('systems/quick', {
     method: 'POST',
     body: JSON.stringify({ name })
   });
@@ -1366,7 +1367,7 @@ el.dependencyForm.addEventListener('submit', async (event) => {
   }
 
   if (newTargetName) {
-    const created = await api('/systems/quick', {
+    const created = await api('systems/quick', {
       method: 'POST',
       body: JSON.stringify({ name: newTargetName })
     });
@@ -1392,7 +1393,7 @@ el.dependencyForm.addEventListener('submit', async (event) => {
     await api(`/dependencies/${state.editingDependencyId}`, { method: 'PUT', body: JSON.stringify(payload) });
     notify('Afhængighed opdateret');
   } else {
-    await api('/dependencies', { method: 'POST', body: JSON.stringify(payload) });
+    await api('dependencies', { method: 'POST', body: JSON.stringify(payload) });
     notify('Afhængighed tilføjet');
   }
   resetDependencyForm();

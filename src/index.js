@@ -12,6 +12,46 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 
+function normalizeBasePath(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '/') return '';
+  const withLeadingSlash = raw.startsWith('/') ? raw : `/${raw}`;
+  return withLeadingSlash.replace(/\/+$/, '');
+}
+
+const CONFIGURED_BASE_PATH = normalizeBasePath(process.env.APP_BASE_PATH);
+
+function resolveBasePath(req) {
+  const forwardedPrefix = req.headers['x-forwarded-prefix'];
+  if (typeof forwardedPrefix === 'string' && forwardedPrefix.trim()) {
+    return normalizeBasePath(forwardedPrefix);
+  }
+  if (Array.isArray(forwardedPrefix) && forwardedPrefix.length > 0) {
+    return normalizeBasePath(forwardedPrefix[0]);
+  }
+  return CONFIGURED_BASE_PATH;
+}
+
+function cookiePath(req) {
+  return resolveBasePath(req) || '/';
+}
+
+function shouldUseSecureCookie(req) {
+  const explicit = String(process.env.COOKIE_SECURE || '').trim().toLowerCase();
+  if (explicit === 'true') return true;
+  if (explicit === 'false') return false;
+
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  if (typeof forwardedProto === 'string') {
+    const proto = forwardedProto.split(',')[0].trim().toLowerCase();
+    return proto === 'https';
+  }
+  if (Array.isArray(forwardedProto) && forwardedProto.length > 0) {
+    return String(forwardedProto[0]).trim().toLowerCase() === 'https';
+  }
+  return Boolean(req.secure);
+}
+
 function mapSystemRow(row) {
   return {
     ...row,
@@ -42,6 +82,7 @@ function parseCookies(cookieHeader = '') {
   for (const part of parts) {
     const [rawKey, ...rest] = part.trim().split('=');
     if (!rawKey) continue;
+    if (Object.prototype.hasOwnProperty.call(cookies, rawKey)) continue;
     const rawValue = rest.join('=');
     try {
       cookies[rawKey] = decodeURIComponent(rawValue);
@@ -60,22 +101,22 @@ function isExpired(expiresAt) {
   return new Date(expiresAt).getTime() <= Date.now();
 }
 
-function setSessionCookie(res, token) {
+function setSessionCookie(req, res, token) {
   res.cookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
+    secure: shouldUseSecureCookie(req),
+    path: cookiePath(req),
     maxAge: SESSION_TTL_MS
   });
 }
 
-function clearSessionCookie(res) {
+function clearSessionCookie(req, res) {
   res.clearCookie(SESSION_COOKIE_NAME, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/'
+    secure: shouldUseSecureCookie(req),
+    path: cookiePath(req)
   });
 }
 
@@ -145,7 +186,7 @@ async function start() {
         if (sessionRow) {
           await db.run('DELETE FROM user_sessions WHERE id = ?', sessionRow.session_id);
         }
-        clearSessionCookie(res);
+        clearSessionCookie(req, res);
         next();
         return;
       }
@@ -235,7 +276,7 @@ async function start() {
       user.id
     );
 
-    setSessionCookie(res, sessionToken);
+    setSessionCookie(req, res, sessionToken);
     res.json({ user: mapPublicUserRow(user) });
   });
 
@@ -292,7 +333,7 @@ async function start() {
     if (req.sessionTokenHash) {
       await db.run('DELETE FROM user_sessions WHERE token_hash = ?', req.sessionTokenHash);
     }
-    clearSessionCookie(res);
+    clearSessionCookie(req, res);
     res.status(204).send();
   });
 
